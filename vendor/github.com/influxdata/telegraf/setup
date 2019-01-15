@@ -1,0 +1,97 @@
+#!/bin/bash
+
+#配置模板文件，以项目目录为根目录，可配置多个，以空格分隔，文件名以".tpl"结尾
+CONFIG_TEMPLATES=monitoring-sls.conf.tpl
+
+#安装目录
+INSTALL_PATH=/etc/acs.conf.d/
+
+#应用名称，这个名称第一次发布后就不要改动
+NAME=acs-monitor
+
+#应用启动命令
+CMD="bash -c 'while true; do echo finished;sleep 60;break; done'"
+
+#应用启动目录，执行
+#DIRECTORY=
+
+#应用是否随supervisord启动而启动
+AUTOSTART=true
+
+#应用挂了是否自启动
+AUTORESTART=true
+
+#标准输出
+STDOUT_LOGFILE=/var/log/acs/monitoring.log
+
+#标准错误
+STDERR_LOGFILE=/var/log/acs/monitoring-err.log
+
+#应用所需环境变量,多个用逗号分隔
+ENV="debug=true,process_max=100"
+
+
+#build之前hook, 在构建机器上执行,这里不要安装任何目标机上需要的东西，在我们的项目中可以用于go应用的编译
+pre_build()
+{
+   \cp -rf ./monitoring-sls.conf ./bin/monitoring-sls.conf
+}
+
+#install之前hook，在应用所在机器上，可执行文件拷贝到安装目录之前
+pre_install()
+{
+    REGISTRY=registry.aliyuncs.com/
+    TELEGRAF_CONFIG_PATH=/etc/acs/acs.conf.d/
+    LOG_PATH=/var/log/acs/
+    #创建日志
+    if [ ! -f "${LOG_PATH}/monitoring-err.log" ];then
+        mkdir -p ${LOG_PATH}
+        touch ${LOG_PATH}/monitoring-err.log
+    fi
+
+    if [ ! -f "${LOG_PATH}/monitoring.log" ];then
+        mkdir -p ${LOG_PATH}
+        touch ${LOG_PATH}/monitoring.log
+    fi
+
+    #拉取镜像
+    docker pull ${REGISTRY}acs/monitoring-server:latest
+    #复制compose模板到指定位置
+    #\cp -rf ./collectdServer.yml /etc/collectd/cos/collectdServer.yml
+    echo "copy telegraf config files……"
+    if [ ! -d "${TELEGRAF_CONFIG_PATH}" ];then
+        mkdir -p ${TELEGRAF_CONFIG_PATH}
+    fi
+
+    #处理telegraf 的配置文件, 将变量替换后的文件放到要挂载的目录
+    if [ -f "${TELEGRAF_CONFIG_PATH}monitoring-sls.conf" ];then
+      echo "remove old version of config file……"
+      rm -f ${TELEGRAF_CONFIG_PATH}monitoring-sls.conf
+    fi
+    #处理collectd 的配置文件, 将变量替换后的文件放到要挂载的目录
+    \cp -rf ./monitoring-sls.conf ${TELEGRAF_CONFIG_PATH}
+
+    if docker ps -a | grep "acsmonitorServer";then
+        docker stop acsmonitorServer
+        docker rm -f acsmonitorServer
+    fi
+    echo "start container……"         #-p 8092:8092/udp \
+    docker run -d \
+        --env AES_KEY=EtcdMonitorKeyII \
+        --restart=always \
+        --net=host \
+        --label aliyun.system=true \
+        --log-opt max-size=50m \
+        --name acsmonitorServer \
+        --volume /etc/acs/acs.conf.d/:/etc/acs/acs.conf.d/ \
+        registry.aliyuncs.com/acs/monitoring-server:0.8-3f6f7c5
+
+    echo "finished"
+}
+
+#install之后hook，代码拷贝到安装目录后
+post_install()
+{
+    #执行到这里表示本次安装成功,在系统中加标记位
+    :
+}
