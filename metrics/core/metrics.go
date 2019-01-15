@@ -28,6 +28,7 @@ const (
 var StandardMetrics = []Metric{
 	MetricUptime,
 	MetricCpuUsage,
+	MetricCpuLoad,
 	MetricMemoryUsage,
 	MetricMemoryRSS,
 	MetricMemoryCache,
@@ -88,6 +89,7 @@ var CpuMetrics = []Metric{
 	MetricCpuLimit,
 	MetricCpuRequest,
 	MetricCpuUsage,
+	MetricCpuLoad,
 	MetricCpuUsageRate,
 	MetricNodeCpuAllocatable,
 	MetricNodeCpuCapacity,
@@ -195,6 +197,25 @@ var MetricCpuUsage = Metric{
 			ValueType:  ValueInt64,
 			MetricType: MetricCumulative,
 			IntValue:   int64(stat.Cpu.Usage.Total)}
+	},
+}
+
+var MetricCpuLoad = Metric{
+	MetricDescriptor: MetricDescriptor{
+		Name:        "cpu/load",
+		Description: "CPU load",
+		Type:        MetricGauge,
+		ValueType:   ValueInt64,
+		Units:       UnitsCount,
+	},
+	HasValue: func(spec *cadvisor.ContainerSpec) bool {
+		return spec.HasCpu
+	},
+	GetValue: func(spec *cadvisor.ContainerSpec, stat *cadvisor.ContainerStats) MetricValue {
+		return MetricValue{
+			ValueType:  ValueInt64,
+			MetricType: MetricGauge,
+			IntValue:   int64(stat.Cpu.LoadAverage)}
 	},
 }
 
