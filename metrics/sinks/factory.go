@@ -21,7 +21,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/metrics-server/common/flags"
 	"github.com/kubernetes-incubator/metrics-server/metrics/core"
+	influxdbsink "github.com/kubernetes-incubator/metrics-server/metrics/sinks/influxdb"
 	metricsink "github.com/kubernetes-incubator/metrics-server/metrics/sinks/metric"
+	socketsink "github.com/kubernetes-incubator/metrics-server/metrics/sinks/socket"
 )
 
 type SinkFactory struct {
@@ -33,6 +35,10 @@ func (this *SinkFactory) Build(uri flags.Uri) (core.DataSink, error) {
 		return metricsink.NewMetricSink(140*time.Second, 15*time.Minute, []string{
 			core.MetricCpuUsageRate.MetricDescriptor.Name,
 			core.MetricMemoryUsage.MetricDescriptor.Name}), nil
+	case "influxdb":
+		return influxdbsink.CreateInfluxdbSink(uri.Val)
+	case "socket":
+		return socketsink.CreateSocketSink(uri.Val)
 	default:
 		return nil, fmt.Errorf("Sink not recognized: %s", uri.Key)
 	}

@@ -29,6 +29,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
+	"github.com/emicklei/go-restful"
 	"github.com/kubernetes-incubator/metrics-server/common/flags"
 	kube_config "github.com/kubernetes-incubator/metrics-server/common/kubernetes"
 	"github.com/kubernetes-incubator/metrics-server/metrics/cmd/heapster-apiserver/app"
@@ -50,6 +51,11 @@ import (
 	kube_client "k8s.io/client-go/kubernetes"
 	v1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"net"
+	"strconv"
+
+	"github.com/kubernetes-incubator/metrics-server/metrics/api/v1"
+	metricsApi "github.com/kubernetes-incubator/metrics-server/metrics/apis/metrics"
 )
 
 func main() {
@@ -91,15 +97,27 @@ func main() {
 	}
 	man.Start()
 
-	// Run API server
-	server, err := app.NewHeapsterApiServer(opt, metricSink, nodeLister, podLister)
-	if err != nil {
-		glog.Fatalf("Could not create the API server: %v", err)
-	}
-	server.AddHealthzChecks(healthzChecker(metricSink))
+	go func() {
+		// Run API server
+		server, err := app.NewHeapsterApiServer(opt, metricSink, nodeLister, podLister)
+		if err != nil {
+			glog.Warningf("Could not create the API server: %v", err)
+		} else {
+			server.AddHealthzChecks(healthzChecker(metricSink))
 
-	glog.Infof("Starting Heapster API server...")
-	glog.Fatal(server.RunServer())
+			glog.Infof("Starting Heapster API server...")
+			glog.Fatal(server.RunServer())
+		}
+	}()
+
+	mux := http.NewServeMux()
+	handler := SetupHandlers(metricSink, podLister, nodeLister, nil, opt.DisableMetricExport)
+	healthz.InstallHandler(mux, healthzChecker(metricSink))
+
+	addr := net.JoinHostPort(opt.Ip, strconv.Itoa(opt.Port))
+	glog.Infof("Starting heapster on port %d", opt.Port)
+	mux.Handle("/", handler)
+	glog.Fatal(http.ListenAndServe(addr, mux))
 }
 
 func createSourceManagerOrDie(src flags.Uris) core.MetricsSource {
@@ -282,4 +300,21 @@ func setMaxProcs(opt *options.HeapsterRunOptions) {
 
 func setLabelSeperator(opt *options.HeapsterRunOptions) {
 	util.SetLabelSeperator(opt.LabelSeperator)
+}
+
+func SetupHandlers(metricSink *metricsink.MetricSink, podLister v1listers.PodLister, nodeLister v1listers.NodeLister, historicalSource core.HistoricalSource, disableMetricExport bool) http.Handler {
+
+	runningInKubernetes := true
+
+	// Make API handler.
+	wsContainer := restful.NewContainer()
+	wsContainer.EnableContentEncoding(true)
+	wsContainer.Router(restful.CurlyRouter{})
+	a := v1.NewApi(runningInKubernetes, metricSink, historicalSource, disableMetricExport)
+	a.Register(wsContainer)
+	// Metrics API
+	m := metricsApi.NewApi(metricSink, podLister, nodeLister)
+	m.Register(wsContainer)
+
+	return wsContainer
 }
