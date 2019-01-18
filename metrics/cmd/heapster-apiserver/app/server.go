@@ -26,6 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	v1listers "k8s.io/client-go/listers/core/v1"
+	generatedopenapi "github.com/kubernetes-incubator/metrics-server/pkg/generated/openapi"
+	"k8s.io/apimachinery/pkg/runtime"
+	"strings"
 )
 
 const (
@@ -85,5 +88,9 @@ func newAPIServer(s *options.HeapsterRunOptions) (*genericapiserver.GenericAPISe
 
 	serverConfig.SwaggerConfig = genericapiserver.DefaultSwaggerConfig()
 
-	return serverConfig.Complete().New(msName, genericapiserver.EmptyDelegate)
+	conf := serverConfig.Complete()
+	conf.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(generatedopenapi.GetOpenAPIDefinitions, runtime.NewScheme())
+	conf.OpenAPIConfig.Info.Title = "Kubernetes metrics-server"
+	conf.OpenAPIConfig.Info.Version = strings.Split(conf.Version.String(), "-")[0] // TODO(directxman12): remove this once autosetting this doesn't require security definitions
+	return conf.New(msName, genericapiserver.EmptyDelegate)
 }
