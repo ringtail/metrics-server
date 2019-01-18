@@ -23,11 +23,11 @@ import (
 
 	"github.com/kubernetes-incubator/metrics-server/metrics/options"
 	metricsink "github.com/kubernetes-incubator/metrics-server/metrics/sinks/metric"
+	generatedopenapi "github.com/kubernetes-incubator/metrics-server/pkg/generated/openapi"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	v1listers "k8s.io/client-go/listers/core/v1"
-	generatedopenapi "github.com/kubernetes-incubator/metrics-server/pkg/generated/openapi"
-	"k8s.io/apimachinery/pkg/runtime"
 	"strings"
 )
 
