@@ -71,8 +71,7 @@ func NewManager(source core.MetricsSource, processors []core.DataProcessor, sink
 		scrapeOffset:           scrapeOffset,
 		stopChan:               make(chan struct{}),
 		housekeepSemaphoreChan: make(chan struct{}, maxParallelism),
-		//housekeepTimeout:       resolution / 2,
-		housekeepTimeout: resolution * 4 / 5,
+		housekeepTimeout:       resolution / 2,
 	}
 
 	for i := 0; i < maxParallelism; i++ {
