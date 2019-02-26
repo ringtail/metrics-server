@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	DefaultMetricsScrapeTimeout = 20 * time.Second
+	DefaultMetricsScrapeTimeout = 60 * time.Second
 	MaxDelayMs                  = 4 * 1000
 	DelayPerSourceMs            = 8
 )
