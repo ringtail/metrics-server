@@ -25,7 +25,7 @@ import (
 
 const (
 	DefaultScrapeOffset   = 5 * time.Second
-	DefaultMaxParallelism = 3
+	DefaultMaxParallelism = 50
 )
 
 var (
