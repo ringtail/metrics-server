@@ -1,5 +1,7 @@
+FROM microsoft/windowsservercore-insider as core
 FROM registry.cn-hangzhou.aliyuncs.com/acs/windows-powershell:nanoserver-1809
 
+COPY --from=core /windows/system32/netapi32.dll
 COPY metrics-server /metrics-server
 
 ENTRYPOINT ["/metrics-server"]
