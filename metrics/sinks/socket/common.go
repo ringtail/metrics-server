@@ -194,8 +194,7 @@ func (metaInfo *MetaInfo) Refresh(clusterId string) {
 	request.Domain = CS_ENDPOINT
 	request.Version = CS_API_VERSION
 	request.ApiName = "DescribeMonitorToken"
-	request.PathPattern = "/k8s/[ClusterId]/monitor/token"
-	request.PathParams["ClusterId"] = metaInfo.ClusterId
+	request.PathPattern = fmt.Sprintf("/k8s/%s/monitor/token", metaInfo.ClusterId)
 
 	response, err := client.ProcessCommonRequest(request)
 	if err != nil {
