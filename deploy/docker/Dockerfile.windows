@@ -1,0 +1,5 @@
+FROM registry.cn-hangzhou.aliyuncs.com/acs/windows-powershell:nanoserver-1809
+
+COPY metrics-server /metrics-server
+
+ENTRYPOINT ["/metrics-server"]
