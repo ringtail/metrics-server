@@ -1,0 +1,47 @@
+# 构建docker模版样例
+---
+# 完整的构建模板标签说明：https://lark.alipay.com/mq4l6o/val2ny/prwhsh
+# version表示构建模板.fw.yml的版本，默认值为1.0
+version: 1.0
+# name表示当前代码仓库的模块名称
+name: metrics-server
+
+# variables表示用户自定义的参数，可在构建脚本中引用
+# 在触发构建的时候，可通过动态参数覆盖variables中定义的默认值
+variables:
+  DOCKER_IMAGE_NAMESPACE: cos
+  DOCKER_IMAGE_REPO: metrics-server
+  DOCKER_IMAGE_TAG: 'v3.6.2_sw'
+  DOCKERFILE_PATH: Docker
+
+privatecloud:
+  version: v3
+
+
+dependencies:
+  base:
+    go: 1.8.3
+
+machine:
+  standard:
+    arm64_apsara:
+      - default
+
+# scripts中定义构建命令行，通过定义的构建命令行可以构建出artifacts中定义的构建产物
+# 在scripts中可直接使用系统环境变量
+scripts:
+   - sudo docker build --pull -t reg.docker.alibaba-inc.com/{{DOCKER_IMAGE_NAMESPACE}}/{{DOCKER_IMAGE_REPO}}:{{DOCKER_IMAGE_TAG}} {{DOCKERFILE_PATH}}
+#  - sudo docker pull reg.docker.alibaba-inc.com/{{DOCKER_IMAGE_NAMESPACE}}/{{DOCKER_IMAGE_REPO}}:{{DOCKER_IMAGE_TAG}}
+  # - ./build.sh
+
+# artifacts定义构建产物类型，目前支持rpms,packages,tianji,images四种类型定义
+# images支持定义多个镜像名称，格式为name:tag，需要显示声明tag版本，否则会默认使用latest
+# 对于images类型，需要单独给公共账号apsara-scm授权镜像的读写权限，否则会出现镜像因为没有授权push失败的情况
+artifacts:
+  images:
+    - reg.docker.alibaba-inc.com/{{DOCKER_IMAGE_NAMESPACE}}/{{DOCKER_IMAGE_REPO}}:{{DOCKER_IMAGE_TAG}}
+
+# notifications定义通知人员列表，目前只支持邮件通知
+notifications:
+  email:
+    - zhongwei.lzw@alibaba-inc.com
