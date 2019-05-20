@@ -24,7 +24,7 @@ dependencies:
 
 machine:
   standard:
-    arm64_apsara:
+    sw64_apsara:
       - default
 
 # scripts中定义构建命令行，通过定义的构建命令行可以构建出artifacts中定义的构建产物
