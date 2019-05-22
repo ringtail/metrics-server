@@ -31,6 +31,7 @@ import (
 	v1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
+	"strconv"
 )
 
 var (
@@ -47,6 +48,8 @@ var (
 
 // Prefix used for the LabelResourceID for volume metrics.
 const VolumeResourcePrefix = "Volume:"
+const AnnotationTunnelPort = "node.beta.alibabacloud.com/tunnel-port"
+const LabelEnableReverseTunnelClient = "alibabacloud.com/edge-enable-reverseTunnel-client"
 
 func init() {
 	prometheus.MustRegister(summaryRequestLatency)
@@ -385,22 +388,32 @@ func (this *summaryProvider) getNodeInfo(node *corev1.Node) (NodeInfo, error) {
 			return NodeInfo{}, fmt.Errorf("Node %v is not ready", node.Name)
 		}
 	}
+
 	info := NodeInfo{
-		NodeName: node.Name,
-		HostName: node.Name,
-		HostID:   node.Spec.ExternalID,
-		Host: kubelet.Host{
-			Port: this.kubeletClient.GetPort(),
-		},
+		NodeName:       node.Name,
+		HostName:       node.Name,
+		HostID:         node.Spec.ExternalID,
 		KubeletVersion: node.Status.NodeInfo.KubeletVersion,
 	}
 
-	for _, addr := range node.Status.Addresses {
-		if addr.Type == corev1.NodeHostName && addr.Address != "" {
-			info.HostName = addr.Address
+	if tunnelPort, ok := node.Annotations[AnnotationTunnelPort]; ok {
+		if tunnelPort != "" {
+			port, err := strconv.Atoi(tunnelPort)
+			if err != nil {
+				glog.Errorf("%v", err)
+			}
+			info.Host.Port = port
+			info.HostName, info.IP = node.Name, "127.0.0.1"
 		}
-		if addr.Type == corev1.NodeInternalIP && addr.Address != "" {
-			info.IP = addr.Address
+	} else {
+		info.Host.Port = this.kubeletClient.GetPort()
+		for _, addr := range node.Status.Addresses {
+			if addr.Type == corev1.NodeHostName && addr.Address != "" {
+				info.HostName = addr.Address
+			}
+			if addr.Type == corev1.NodeInternalIP && addr.Address != "" {
+				info.IP = addr.Address
+			}
 		}
 	}
 

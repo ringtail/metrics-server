@@ -33,6 +33,7 @@ import (
 	kube_client "k8s.io/client-go/kubernetes"
 	v1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"strconv"
 )
 
 const (
@@ -42,6 +43,11 @@ const (
 	kubernetesPodNamespaceLabel = "io.kubernetes.pod.namespace"
 	kubernetesPodUID            = "io.kubernetes.pod.uid"
 	kubernetesContainerLabel    = "io.kubernetes.container.name"
+
+	// used for reverse tunnel
+	LabelEnableReverseTunnelClient = "alibabacloud.com/edge-enable-reverseTunnel-client"
+	AnnotationTunnelPort           = "node.beta.alibabacloud.com/tunnel-port"
+	// AnnotationTunnelServer         = "node.beta.alibabacloud.com/tunnel-server"
 )
 
 var (
@@ -280,8 +286,23 @@ func (this *kubeletProvider) GetMetricsSources() []MetricsSource {
 			glog.Errorf("%v", err)
 			continue
 		}
+
+		var port int
+		if tunnelPort, ok := node.Annotations[AnnotationTunnelPort]; ok {
+			if tunnelPort != "" {
+				port, err = strconv.Atoi(tunnelPort)
+				if err != nil {
+					glog.Errorf("%v", err)
+					continue
+				}
+			} else {
+				continue
+			}
+		} else {
+			port = this.kubeletClient.GetPort()
+		}
 		sources = append(sources, NewKubeletMetricsSource(
-			Host{IP: ip, Port: this.kubeletClient.GetPort()},
+			Host{IP: ip, Port: port},
 			this.kubeletClient,
 			node.Name,
 			hostname,
@@ -297,7 +318,17 @@ func getNodeHostnameAndIP(node *corev1.Node) (string, string, error) {
 			return "", "", fmt.Errorf("Node %v is not ready", node.Name)
 		}
 	}
+
 	hostname, ip := node.Name, ""
+	if enableTunnel, ok := node.Labels[LabelEnableReverseTunnelClient]; ok {
+		if enableTunnel != "true" {
+			// install metricserver and frps on same node with hostnetwork mode
+			// so just use "127.0.0.1" to communicate
+			ip = "127.0.0.1"
+			return hostname, ip, nil
+		}
+	}
+
 	for _, addr := range node.Status.Addresses {
 		if addr.Type == corev1.NodeHostName && addr.Address != "" {
 			hostname = addr.Address
@@ -308,6 +339,7 @@ func getNodeHostnameAndIP(node *corev1.Node) (string, string, error) {
 			}
 		}
 	}
+
 	if ip != "" {
 		return hostname, ip, nil
 	}
