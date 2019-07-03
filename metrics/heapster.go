@@ -101,10 +101,9 @@ func main() {
 		// Run API server
 		server, err := app.NewHeapsterApiServer(opt, metricSink, nodeLister, podLister)
 		if err != nil {
-			glog.Warningf("Could not create the API server: %v", err)
+			glog.Fatalf("Could not create the API server: %v", err)
 		} else {
 			server.AddHealthzChecks(healthzChecker(metricSink))
-
 			glog.Infof("Starting Heapster API server...")
 			glog.Fatal(server.RunServer())
 		}
