@@ -1,0 +1,16 @@
+FROM reg.docker.alibaba-inc.com/cos/golang:1.12.9-arm64 AS build-env
+ADD . /src/github.com/kubernetes-incubator/metrics-server
+ENV GOPATH /:/src/github.com/kubernetes-incubator/metrics-server/vendor
+WORKDIR /src/github.com/kubernetes-incubator/metrics-server
+RUN apt-get update -y && apt-get install gcc ca-certificates
+RUN ARCH=arm64 make
+
+
+FROM reg.docker.alibaba-inc.com/cos/alpine:3.8-arm64
+COPY --from=build-env /usr/local/go/lib/time/zoneinfo.zip /usr/local/go/lib/time/zoneinfo.zip
+COPY --from=build-env /src/github.com/kubernetes-incubator/metrics-server/metrics-server /
+COPY --from=build-env /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+# nobody:nobody
+# USER 65534:65534
+ENTRYPOINT ["/metrics-server"]
+
