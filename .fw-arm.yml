@@ -1,0 +1,43 @@
+# 构建docker模版样例
+---
+# 完整的构建模板标签说明：https://lark.alipay.com/mq4l6o/val2ny/prwhsh
+# version表示构建模板.fw.yml的版本，默认值为1.0
+version: 1.0
+# name表示当前代码仓库的模块名称
+name: metrics-server-arm
+
+# variables表示用户自定义的参数，可在构建脚本中引用
+# 在触发构建的时候，可通过动态参数覆盖variables中定义的默认值
+variables:
+  DOCKERFILE_PATH: deploy/docker
+  DOCKER_IMAGE_NAMESPACE: cos
+  DOCKER_IMAGE_REPO: metrics-server
+  ARCH: 'arm64'
+  VERSION: v0.2.1
+
+privatecloud:
+  version: v3
+
+git:
+  depth: 1
+
+# machine表示编译机配置，standard表示基于VM编译
+machine:
+  standard:
+    arm64_docker18:
+      - default
+
+# scripts中定义构建命令行，通过定义的构建命令行可以构建出artifacts中定义的构建产物
+# 在scripts中可直接使用系统环境变量
+# {{FW_REPO_VERSION}} 表示git commit信息
+scripts:
+  - sudo docker build --pull -t reg.docker.alibaba-inc.com/{{DOCKER_IMAGE_NAMESPACE}}/{{DOCKER_IMAGE_REPO}}-{{ARCH}}:{{VERSION}}-{{FW_REPO_VERSION}} -f {{DOCKERFILE_PATH}}/Dockerfile.arm .
+
+artifacts:
+  images:
+    - reg.docker.alibaba-inc.com/{{DOCKER_IMAGE_NAMESPACE}}/{{DOCKER_IMAGE_REPO}}-{{ARCH}}:{{VERSION}}-{{FW_REPO_VERSION}} | {{DOCKERFILE_PATH}}/Dockerfile.arm
+
+# notifications定义通知人员列表，目前只支持邮件通知
+notifications:
+  email:
+    - xiaodai.zl@alibaba-inc.com
