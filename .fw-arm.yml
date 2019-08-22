@@ -4,14 +4,16 @@
 # version表示构建模板.fw.yml的版本，默认值为1.0
 version: 1.0
 # name表示当前代码仓库的模块名称
-name: metrics-server-x86
+name: metrics-server-arm
 
 # variables表示用户自定义的参数，可在构建脚本中引用
 # 在触发构建的时候，可通过动态参数覆盖variables中定义的默认值
 variables:
-  REGISTRY: reg.docker.alibaba-inc.com/cos/metrics-server-arm64
-  VERSION: v0.2.1
+  DOCKERFILE_PATH: deploy/docker
+  DOCKER_IMAGE_NAMESPACE: cos
+  DOCKER_IMAGE_REPO: metrics-server
   ARCH: 'arm64'
+  VERSION: v0.2.1
 
 privatecloud:
   version: v3
@@ -27,15 +29,13 @@ machine:
 
 # scripts中定义构建命令行，通过定义的构建命令行可以构建出artifacts中定义的构建产物
 # 在scripts中可直接使用系统环境变量
+# {{FW_REPO_VERSION}} 表示git commit信息
 scripts:
-  - sh -x aone_build.sh {{ARCH}} {{REGISTRY}} {{VERSION}}
-  - dummy_tgz=dummy-$(date +%s) && touch $dummy_tgz.txt && tar czf $dummy_tgz.tgz $dummy_tgz.txt
+  - sudo docker build --pull -t reg.docker.alibaba-inc.com/{{DOCKER_IMAGE_NAMESPACE}}/{{DOCKER_IMAGE_REPO}}-{{ARCH}}:{{VERSION}}-{{FW_REPO_VERSION}} -f {{DOCKERFILE_PATH}}/Dockerfile.arm .
 
-# Aone构建目前不支持动态指定镜像版本, 所以artifacts放一个dummy压缩包，确保每次能构建通过
-# 真正的镜像产物参考日志输出 {{REGISTRY}}:{动态指定版本}
 artifacts:
-  packages:
-    - dummy-.*.tgz
+  images:
+    - reg.docker.alibaba-inc.com/{{DOCKER_IMAGE_NAMESPACE}}/{{DOCKER_IMAGE_REPO}}-{{ARCH}}:{{VERSION}}-{{FW_REPO_VERSION}} | {{DOCKERFILE_PATH}}/Dockerfile.arm
 
 # notifications定义通知人员列表，目前只支持邮件通知
 notifications:
