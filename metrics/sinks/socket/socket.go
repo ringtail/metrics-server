@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	MaxSendBatchSize = 300
+	MaxSendBatchSize = 1000
 )
 
 type SocketSink struct {
@@ -170,7 +170,7 @@ func (sink *SocketSink) SendData(dataPoints []influxdb.Point) error {
 		return err
 	}
 	glog.Infof("Successful write %d bytes metrics to monitor server\n", len(metrics_bytes))
-	time.Sleep(time.Millisecond * 200)
+	time.Sleep(time.Millisecond * 50)
 	return nil
 }
 
