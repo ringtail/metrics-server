@@ -20,6 +20,7 @@ import (
 	"github.com/kubernetes-incubator/metrics-server/common/flags"
 	"github.com/kubernetes-incubator/metrics-server/metrics/core"
 	"github.com/kubernetes-incubator/metrics-server/metrics/sources/kubelet"
+	"github.com/kubernetes-incubator/metrics-server/metrics/sources/kubetunnel"
 	"github.com/kubernetes-incubator/metrics-server/metrics/sources/summary"
 )
 
@@ -33,6 +34,9 @@ func (this *SourceFactory) Build(uri flags.Uri) (core.MetricsSourceProvider, err
 		return provider, err
 	case "kubernetes.summary_api":
 		provider, err := summary.NewSummaryProvider(&uri.Val)
+		return provider, err
+	case "kubernetes.kube_tunnel":
+		provider, err := kubetunnel.NewKubeTunnelProvider(&uri.Val)
 		return provider, err
 	default:
 		return nil, fmt.Errorf("Source not recognized: %s", uri.Key)
