@@ -1,4 +1,5 @@
 FROM reg.docker.alibaba-inc.com/ali/os_sw_7u5:latest as intermediate
+MAINTAINER zhongwei.lzw@alibaba-inc.com
 
 WORKDIR /go/src/github.com/kubernetes-incubator/metrics-server
 ADD . /go/src/github.com/kubernetes-incubator/metrics-server
