@@ -29,7 +29,7 @@ machine:
 # scripts中定义构建命令行，通过定义的构建命令行可以构建出artifacts中定义的构建产物
 # 在scripts中可直接使用系统环境变量
 scripts:
-   - sudo docker build --pull -t reg.docker.alibaba-inc.com/{{DOCKER_IMAGE_NAMESPACE}}/{{DOCKER_IMAGE_REPO}}:{{DOCKER_IMAGE_TAG}} -f {{DOCKERFILE_PATH}}/Dockerfile .
+   - sudo docker build --pull -t reg.docker.alibaba-inc.com/{{DOCKER_IMAGE_NAMESPACE}}/{{DOCKER_IMAGE_REPO}}:{{DOCKER_IMAGE_TAG}} -f {{DOCKERFILE_PATH}}/Dockerfile_build .
 
 # artifacts定义构建产物类型，目前支持rpms,packages,tianji,images四种类型定义
 # images支持定义多个镜像名称，格式为name:tag，需要显示声明tag版本，否则会默认使用latest
