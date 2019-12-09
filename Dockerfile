@@ -4,5 +4,5 @@ COPY metrics-server /
 RUN apk add --no-cache tzdata
 
 # nobody:nobody
-# USER 65534:65534
+USER 65534:65534
 ENTRYPOINT ["/metrics-server"]
