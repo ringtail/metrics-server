@@ -30,7 +30,7 @@ machine:
 # scripts中定义构建命令行，通过定义的构建命令行可以构建出artifacts中定义的构建产物
 # 在scripts中可直接使用系统环境变量
 scripts:
-   - sudo docker build --pull -t reg.docker.alibaba-inc.com/{{DOCKER_IMAGE_NAMESPACE}}/{{DOCKER_IMAGE_REPO}}:{{DOCKER_IMAGE_TAG}} {{DOCKERFILE_PATH}}
+   - sudo docker build --pull -t reg.docker.alibaba-inc.com/{{DOCKER_IMAGE_NAMESPACE}}/{{DOCKER_IMAGE_REPO}}:{{DOCKER_IMAGE_TAG}} -f {{DOCKERFILE_PATH}}
 #  - sudo docker pull reg.docker.alibaba-inc.com/{{DOCKER_IMAGE_NAMESPACE}}/{{DOCKER_IMAGE_REPO}}:{{DOCKER_IMAGE_TAG}}
   # - ./build.sh
 
