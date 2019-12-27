@@ -1,11 +1,10 @@
-FROM reg.docker.alibaba-inc.com/ali/os_sw_7u5:latest as intermediate
+FROM reg.docker.alibaba-inc.com/cos/golang:1.10.8-sw:latest as intermediate
 MAINTAINER zhongwei.lzw@alibaba-inc.com
 
 WORKDIR /go/src/github.com/kubernetes-incubator/metrics-server
 ADD . /go/src/github.com/kubernetes-incubator/metrics-server
 ENV BUILD_TAGS pkd
-RUN CGO_ENABLED=0 go build -o metrics-server github.com/kubernetes-incubator/metrics-server/metrics
-
+RUN make build
 
 #cat Dockerfile
 FROM reg.docker.alibaba-inc.com/ali/os_sw_7u5
