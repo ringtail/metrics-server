@@ -1,4 +1,4 @@
-FROM reg.docker.alibaba-inc.com/cos/golang:1.10.8-sw:latest as intermediate
+FROM reg.docker.alibaba-inc.com/cos/golang:1.10.8-sw as intermediate
 MAINTAINER zhongwei.lzw@alibaba-inc.com
 
 WORKDIR /go/src/github.com/kubernetes-incubator/metrics-server
