@@ -14,6 +14,10 @@ import (
 	"net/url"
 	"os"
 	"time"
+	"encoding/base64"
+	"crypto/aes"
+	"crypto/cipher"
+	"io/ioutil"
 )
 
 /**
@@ -122,7 +126,45 @@ const (
 	DEFAULT_STS_INTERVAL = time.Minute * 60
 	CS_ENDPOINT          = "cs.aliyuncs.com"
 	CS_API_VERSION       = "2015-12-15"
+	ConfigPath           = "/var/addon/token-config"
 )
+
+type AKInfo struct {
+	AccessKeyId     string `json:"access.key.id"`
+	AccessKeySecret string `json:"access.key.secret"`
+	SecurityToken   string `json:"security.token"`
+	Expiration      string `json:"expiration"`
+	Keyring         string `json:"keyring"`
+}
+
+func PKCS5UnPadding(origData []byte) []byte {
+	length := len(origData)
+	unpadding := int(origData[length-1])
+	return origData[:(length - unpadding)]
+}
+
+func Decrypt(s string, keyring []byte) ([]byte, error) {
+	cdata, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		glog.Errorf("failed to decode base64 string, err: %v", err)
+		return nil, err
+	}
+	block, err := aes.NewCipher(keyring)
+	if err != nil {
+		glog.Errorf("failed to new cipher, err: %v", err)
+		return nil, err
+	}
+	blockSize := block.BlockSize()
+
+	iv := cdata[:blockSize]
+	blockMode := cipher.NewCBCDecrypter(block, iv)
+	origData := make([]byte, len(cdata)-blockSize)
+
+	blockMode.CryptBlocks(origData, cdata[blockSize:])
+
+	origData = PKCS5UnPadding(origData)
+	return origData, nil
+}
 
 type Token struct {
 	Token string `json:"token"`
@@ -147,6 +189,7 @@ func (metaInfo *MetaInfo) RefreshInterval(clusterId string) {
 }
 
 func (metaInfo *MetaInfo) Refresh(clusterId string) {
+
 	m := metadata.NewMetaData(nil)
 
 	var (
@@ -184,7 +227,50 @@ func (metaInfo *MetaInfo) Refresh(clusterId string) {
 	}
 	metaInfo.Uid = uid
 
-	client, err := cs.NewClientWithStsToken(metaInfo.RegionId, role.AccessKeyId, role.AccessKeySecret, role.SecurityToken)
+	var akInfo AKInfo
+	if _, err := os.Stat(ConfigPath); err == nil {
+		//获取token config json
+		encodeTokenCfg, err := ioutil.ReadFile(ConfigPath)
+		if err != nil {
+			glog.Fatalf("failed to read token config, err: %v", err)
+		}
+		err = json.Unmarshal(encodeTokenCfg, &akInfo)
+		if err != nil {
+			glog.Fatalf("error unmarshal token config: %v", err)
+		}
+		keyring := akInfo.Keyring
+		ak, err := Decrypt(akInfo.AccessKeyId, []byte(keyring))
+		if err != nil {
+			glog.Fatalf("failed to decode ak, err: %v", err)
+		}
+
+		sk, err := Decrypt(akInfo.AccessKeySecret, []byte(keyring))
+		if err != nil {
+			glog.Fatalf("failed to decode sk, err: %v", err)
+		}
+
+		token, err := Decrypt(akInfo.SecurityToken, []byte(keyring))
+		if err != nil {
+			glog.Fatalf("failed to decode token, err: %v", err)
+		}
+		glog.Infof("ak %s sk %s token %s", string(ak), string(sk), string(token))
+		layout := "2006-01-02T15:04:05Z"
+		t, err := time.Parse(layout, akInfo.Expiration)
+		if err != nil {
+			fmt.Errorf(err.Error())
+		}
+		if t.Before(time.Now()) {
+			glog.Errorf("invalid token which is expired")
+		}
+		akInfo.AccessKeyId = string(ak)
+		akInfo.AccessKeySecret = string(sk)
+		akInfo.SecurityToken = string(token)
+	} else {
+		akInfo.AccessKeyId = role.AccessKeyId
+		akInfo.AccessKeySecret = role.AccessKeySecret
+		akInfo.SecurityToken = role.SecurityToken
+	}
+	client, err := cs.NewClientWithStsToken(metaInfo.RegionId, akInfo.AccessKeyId, akInfo.AccessKeySecret, akInfo.SecurityToken)
 	if err != nil {
 		glog.Errorf("Failed to create sdk client with sts token,because of %s\n", err.Error())
 		return
