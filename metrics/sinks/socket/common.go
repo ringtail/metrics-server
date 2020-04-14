@@ -197,18 +197,6 @@ func (metaInfo *MetaInfo) Refresh(clusterId string) {
 		err      error
 	)
 
-	if rolename, err = m.RoleName(); err != nil {
-		glog.Errorf("Failed to refresh sts rolename,because of %s\n", err.Error())
-		os.Exit(-1)
-	}
-
-	role, err := m.RamRoleToken(rolename)
-
-	if err != nil {
-		glog.Errorf("Failed to refresh sts token,because of %s\n", err.Error())
-		os.Exit(-1)
-	}
-
 	metaInfo.ClusterId = clusterId
 
 	region, err := m.Region()
@@ -266,6 +254,17 @@ func (metaInfo *MetaInfo) Refresh(clusterId string) {
 		akInfo.AccessKeySecret = string(sk)
 		akInfo.SecurityToken = string(token)
 	} else {
+		if rolename, err = m.RoleName(); err != nil {
+			glog.Errorf("Failed to refresh sts rolename,because of %s\n", err.Error())
+			os.Exit(-1)
+		}
+
+		role, err := m.RamRoleToken(rolename)
+
+		if err != nil {
+			glog.Errorf("Failed to refresh sts token,because of %s\n", err.Error())
+			os.Exit(-1)
+		}
 		akInfo.AccessKeyId = role.AccessKeyId
 		akInfo.AccessKeySecret = role.AccessKeySecret
 		akInfo.SecurityToken = role.SecurityToken
