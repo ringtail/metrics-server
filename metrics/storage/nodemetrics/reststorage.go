@@ -16,6 +16,7 @@ package app
 
 import (
 	"fmt"
+	"k8s.io/client-go/kubernetes"
 	"time"
 
 	"github.com/golang/glog"
@@ -48,7 +49,7 @@ var _ rest.Storage = &MetricStorage{}
 var _ rest.Getter = &MetricStorage{}
 var _ rest.Lister = &MetricStorage{}
 
-func NewStorage(groupResource schema.GroupResource, metricSink *metricsink.MetricSink, nodeLister v1listers.NodeLister) *MetricStorage {
+func NewStorage(groupResource schema.GroupResource, metricSink *metricsink.MetricSink, nodeLister v1listers.NodeLister,kubeClient *kubernetes.Clientset) *MetricStorage {
 	return &MetricStorage{
 		groupResource: groupResource,
 		metricSink:    metricSink,

@@ -19,16 +19,17 @@ package app
 
 import (
 	"fmt"
+	"k8s.io/client-go/kubernetes"
 	"net"
 
 	"github.com/kubernetes-incubator/metrics-server/metrics/options"
 	metricsink "github.com/kubernetes-incubator/metrics-server/metrics/sinks/metric"
 	generatedopenapi "github.com/kubernetes-incubator/metrics-server/pkg/generated/openapi"
+	"github.com/kubernetes-incubator/metrics-server/version"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	v1listers "k8s.io/client-go/listers/core/v1"
-	"github.com/kubernetes-incubator/metrics-server/version"
 	"strings"
 )
 
@@ -49,14 +50,14 @@ func (h *HeapsterAPIServer) RunServer() error {
 }
 
 func NewHeapsterApiServer(s *options.HeapsterRunOptions, metricSink *metricsink.MetricSink,
-	nodeLister v1listers.NodeLister, podLister v1listers.PodLister) (*HeapsterAPIServer, error) {
+	nodeLister v1listers.NodeLister, podLister v1listers.PodLister, kubeClient *kubernetes.Clientset) (*HeapsterAPIServer, error) {
 
 	server, err := newAPIServer(s)
 	if err != nil {
 		return &HeapsterAPIServer{}, err
 	}
 
-	installMetricsAPIs(s, server, metricSink, nodeLister, podLister)
+	installMetricsAPIs(s, server, metricSink, nodeLister, podLister, kubeClient)
 
 	return &HeapsterAPIServer{
 		GenericAPIServer: server,

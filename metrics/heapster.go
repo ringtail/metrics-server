@@ -99,7 +99,8 @@ func main() {
 
 	go func() {
 		// Run API server
-		server, err := app.NewHeapsterApiServer(opt, metricSink, nodeLister, podLister)
+		kubeClient := createKubeClientOrDie(kubernetesUrl)
+		server, err := app.NewHeapsterApiServer(opt, metricSink, nodeLister, podLister, kubeClient)
 		if err != nil {
 			glog.Fatalf("Could not create the API server: %v", err)
 		} else {

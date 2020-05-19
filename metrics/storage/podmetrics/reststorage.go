@@ -16,6 +16,7 @@ package app
 
 import (
 	"fmt"
+	"k8s.io/client-go/kubernetes"
 	"time"
 
 	"github.com/golang/glog"
@@ -37,10 +38,15 @@ import (
 	_ "k8s.io/metrics/pkg/apis/metrics/install"
 )
 
+const (
+	HPARollingUpdateSkipped = "HPARollingUpdateSkipped"
+)
+
 type MetricStorage struct {
 	groupResource schema.GroupResource
 	metricSink    *metricsink.MetricSink
 	podLister     v1listers.PodLister
+	kubeClient    *kubernetes.Clientset
 }
 
 var _ rest.KindProvider = &MetricStorage{}
@@ -48,11 +54,12 @@ var _ rest.Storage = &MetricStorage{}
 var _ rest.Getter = &MetricStorage{}
 var _ rest.Lister = &MetricStorage{}
 
-func NewStorage(groupResource schema.GroupResource, metricSink *metricsink.MetricSink, podLister v1listers.PodLister) *MetricStorage {
+func NewStorage(groupResource schema.GroupResource, metricSink *metricsink.MetricSink, podLister v1listers.PodLister, kubeClient *kubernetes.Clientset) *MetricStorage {
 	return &MetricStorage{
 		groupResource: groupResource,
 		metricSink:    metricSink,
 		podLister:     podLister,
+		kubeClient:    kubeClient,
 	}
 }
 
@@ -86,6 +93,39 @@ func (m *MetricStorage) List(ctx genericapirequest.Context, options *metainterna
 	}
 
 	res := metrics.PodMetricsList{}
+
+	// seems like hpa requests
+	if len(pods) != 0 && options != nil && options.LabelSelector != nil {
+		var podCandidate *v1.Pod
+
+		for _, pod := range pods {
+			if &pod.Status != nil && pod.Status.Phase == v1.PodRunning &&
+				pod.Annotations != nil && pod.Annotations[HPARollingUpdateSkipped] == "true" {
+				podCandidate = pod
+			}
+		}
+
+		if podCandidate != nil {
+			owners := podCandidate.GetOwnerReferences()
+			if len(owners) != 0 {
+				ownerCandidate := owners[0]
+				name := ownerCandidate.Name
+				kind := ownerCandidate.Kind
+				if kind == "ReplicaSet" {
+					rs, err := m.kubeClient.Apps().ReplicaSets(namespace).Get(name, metav1.GetOptions{})
+					if err != nil {
+						glog.Errorf("Failed to check podCandidate owner references %v", err)
+					} else {
+						if rs.Status.AvailableReplicas != rs.Status.Replicas {
+							glog.Infof("Workload may be in rolling update status.Skip this loop.")
+							return &res, nil
+						}
+					}
+				}
+			}
+		}
+	}
+
 	for _, pod := range pods {
 		if podMetrics := m.getPodMetrics(pod); podMetrics != nil {
 			res.Items = append(res.Items, *podMetrics)
