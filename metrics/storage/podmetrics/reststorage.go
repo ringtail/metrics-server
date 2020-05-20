@@ -123,7 +123,7 @@ func (m *MetricStorage) List(ctx genericapirequest.Context, options *metainterna
 						//	glog.Infof("Workload may be in rolling update status.Skip this loop.")
 						//	return &res, nil
 						//}
-						if deploy.Status.AvailableReplicas == deploy.Status.Replicas {
+						if deploy.Status.AvailableReplicas != deploy.Status.Replicas {
 							glog.Infof("Workload %s may be in rolling update status.Skip this loop.", deploy.Name)
 							return &res, nil
 						}
