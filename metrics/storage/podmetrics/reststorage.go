@@ -114,7 +114,7 @@ func (m *MetricStorage) List(ctx genericapirequest.Context, options *metainterna
 				kind := ownerCandidate.Kind
 				if kind == "ReplicaSet" {
 
-					deployName := name[0 : len(name)-10]
+					deployName := name[0 : len(name)-11]
 					deploy, err := m.kubeClient.Apps().Deployments(podCandidate.Namespace).Get(deployName, metav1.GetOptions{})
 					if err != nil {
 						glog.Errorf("Failed to check podCandidate owner references %v", err)
