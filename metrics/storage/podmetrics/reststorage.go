@@ -106,6 +106,7 @@ func (m *MetricStorage) List(ctx genericapirequest.Context, options *metainterna
 		}
 
 		if podCandidate != nil {
+			glog.V(5).Infof("podCandidate selected %s", podCandidate.Name)
 			owners := podCandidate.GetOwnerReferences()
 			if len(owners) != 0 {
 				ownerCandidate := owners[0]
