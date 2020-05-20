@@ -113,12 +113,18 @@ func (m *MetricStorage) List(ctx genericapirequest.Context, options *metainterna
 				name := ownerCandidate.Name
 				kind := ownerCandidate.Kind
 				if kind == "ReplicaSet" {
-					rs, err := m.kubeClient.Apps().ReplicaSets(podCandidate.Namespace).Get(name, metav1.GetOptions{})
+
+					deployName := name[0 : len(name)-10]
+					deploy, err := m.kubeClient.Apps().Deployments(podCandidate.Namespace).Get(deployName, metav1.GetOptions{})
 					if err != nil {
 						glog.Errorf("Failed to check podCandidate owner references %v", err)
 					} else {
-						if rs.Status.AvailableReplicas != rs.Status.Replicas {
-							glog.Infof("Workload may be in rolling update status.Skip this loop.")
+						//if deploy.Status.Conditions["Progressing"] == "True" {
+						//	glog.Infof("Workload may be in rolling update status.Skip this loop.")
+						//	return &res, nil
+						//}
+						if deploy.Status.AvailableReplicas == deploy.Status.Replicas {
+							glog.Infof("Workload %s may be in rolling update status.Skip this loop.", deploy.Name)
 							return &res, nil
 						}
 					}
