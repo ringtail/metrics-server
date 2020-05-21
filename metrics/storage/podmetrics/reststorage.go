@@ -17,6 +17,7 @@ package app
 import (
 	"fmt"
 	"k8s.io/client-go/kubernetes"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -95,6 +96,21 @@ func (m *MetricStorage) List(ctx genericapirequest.Context, options *metainterna
 	res := metrics.PodMetricsList{}
 
 	// seems like hpa requests
+	if filterHPARollingUpdateMetrics(pods, options, m.kubeClient) {
+		return &res, nil
+	}
+
+	for _, pod := range pods {
+		if podMetrics := m.getPodMetrics(pod); podMetrics != nil {
+			res.Items = append(res.Items, *podMetrics)
+		} else {
+			glog.Infof("No metrics for pod %s/%s", pod.Namespace, pod.Name)
+		}
+	}
+	return &res, nil
+}
+
+func filterHPARollingUpdateMetrics(pods []*v1.Pod, options *metainternalversion.ListOptions, client *kubernetes.Clientset) bool {
 	if len(pods) != 0 && options != nil && options.LabelSelector != nil {
 		var podCandidate *v1.Pod
 
@@ -113,34 +129,29 @@ func (m *MetricStorage) List(ctx genericapirequest.Context, options *metainterna
 				name := ownerCandidate.Name
 				kind := ownerCandidate.Kind
 				if kind == "ReplicaSet" {
-
-					deployName := name[0 : len(name)-11]
-					deploy, err := m.kubeClient.Apps().Deployments(podCandidate.Namespace).Get(deployName, metav1.GetOptions{})
+					deployName := getPrefixName(name)
+					deploy, err := client.Apps().Deployments(podCandidate.Namespace).Get(deployName, metav1.GetOptions{})
 					if err != nil {
 						glog.Errorf("Failed to check podCandidate owner references %v", err)
 					} else {
-						//if deploy.Status.Conditions["Progressing"] == "True" {
-						//	glog.Infof("Workload may be in rolling update status.Skip this loop.")
-						//	return &res, nil
-						//}
 						if deploy.Status.AvailableReplicas != deploy.Status.Replicas {
 							glog.Infof("Workload %s may be in rolling update status.Skip this loop.", deploy.Name)
-							return &res, nil
+							return true
 						}
 					}
 				}
 			}
 		}
 	}
+	return false
+}
 
-	for _, pod := range pods {
-		if podMetrics := m.getPodMetrics(pod); podMetrics != nil {
-			res.Items = append(res.Items, *podMetrics)
-		} else {
-			glog.Infof("No metrics for pod %s/%s", pod.Namespace, pod.Name)
-		}
+func getPrefixName(name string) string {
+	nameArr := strings.Split(name, "-")
+	if len(nameArr) > 2 {
+		return strings.Join(nameArr[0:len(nameArr)-1], "-")
 	}
-	return &res, nil
+	return name
 }
 
 // Getter interface
