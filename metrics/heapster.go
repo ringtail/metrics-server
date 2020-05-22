@@ -84,7 +84,7 @@ func main() {
 	if err != nil {
 		glog.Fatalf("Failed to get kubernetes address: %v", err)
 	}
-	sourceManager := createSourceManagerOrDie(opt.Sources)
+	sourceManager := createSourceManagerOrDie(opt.Sources, opt.MetricResolution-manager.DefaultScrapeOffset)
 	sinkManager, metricSink := createAndInitSinksOrDie(opt.Sinks)
 
 	podLister, nodeLister := getListersOrDie(kubernetesUrl)
@@ -120,7 +120,7 @@ func main() {
 	glog.Fatal(http.ListenAndServe(addr, mux))
 }
 
-func createSourceManagerOrDie(src flags.Uris) core.MetricsSource {
+func createSourceManagerOrDie(src flags.Uris, scrapeTimeout time.Duration) core.MetricsSource {
 	if len(src) != 1 {
 		glog.Fatal("Wrong number of sources specified")
 	}
@@ -129,7 +129,7 @@ func createSourceManagerOrDie(src flags.Uris) core.MetricsSource {
 	if err != nil {
 		glog.Fatalf("Failed to create source provide: %v", err)
 	}
-	sourceManager, err := sources.NewSourceManager(sourceProvider, sources.DefaultMetricsScrapeTimeout)
+	sourceManager, err := sources.NewSourceManager(sourceProvider, scrapeTimeout)
 	if err != nil {
 		glog.Fatalf("Failed to create source manager: %v", err)
 	}

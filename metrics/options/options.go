@@ -33,15 +33,16 @@ type HeapsterRunOptions struct {
 	// Only to be used to for testing
 	DisableAuthForTesting bool
 
-	MetricResolution    time.Duration
-	Port                int
-	Ip                  string
-	MaxProcs            int
-	Sources             flags.Uris
-	Sinks               flags.Uris
-	Version             bool
-	LabelSeperator      string
-	DisableMetricExport bool
+	MetricResolution        time.Duration
+	Port                    int
+	Ip                      string
+	MaxProcs                int
+	Sources                 flags.Uris
+	Sinks                   flags.Uris
+	Version                 bool
+	LabelSeperator          string
+	DisableMetricExport     bool
+	HPARollingUpdateSkipped bool
 }
 
 func NewHeapsterRunOptions() *HeapsterRunOptions {
@@ -69,4 +70,5 @@ func (h *HeapsterRunOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&h.Version, "version", false, "print version info and exit")
 	fs.StringVar(&h.LabelSeperator, "label_seperator", ",", "seperator used for joining labels")
 	fs.BoolVar(&h.DisableMetricExport, "disable_export", false, "Disable exporting metrics in api/v1/metric-export")
+	fs.BoolVar(&h.HPARollingUpdateSkipped, "enable-hpa-rolling-update-skipped", false, "Enable hpa rolling update skipped feature gate")
 }

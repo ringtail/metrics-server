@@ -63,7 +63,7 @@ func installMetricsAPIs(s *options.HeapsterRunOptions, g *genericapiserver.Gener
 	apiGroupInfo.GroupMeta.GroupVersion = v1beta1.SchemeGroupVersion
 
 	nodemetricsStorage := nodemetricsstorage.NewStorage(metrics.Resource("nodemetrics"), metricSink, nodeLister, kubeClient)
-	podmetricsStorage := podmetricsstorage.NewStorage(metrics.Resource("podmetrics"), metricSink, podLister, kubeClient)
+	podmetricsStorage := podmetricsstorage.NewStorage(metrics.Resource("podmetrics"), metricSink, podLister, kubeClient, s.HPARollingUpdateSkipped)
 	heapsterResources := map[string]rest.Storage{
 		"nodes": nodemetricsStorage,
 		"pods":  podmetricsStorage,

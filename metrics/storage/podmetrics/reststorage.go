@@ -44,10 +44,11 @@ const (
 )
 
 type MetricStorage struct {
-	groupResource schema.GroupResource
-	metricSink    *metricsink.MetricSink
-	podLister     v1listers.PodLister
-	kubeClient    *kubernetes.Clientset
+	groupResource           schema.GroupResource
+	metricSink              *metricsink.MetricSink
+	podLister               v1listers.PodLister
+	kubeClient              *kubernetes.Clientset
+	HPARollingUpdateSkipped bool
 }
 
 var _ rest.KindProvider = &MetricStorage{}
@@ -55,12 +56,13 @@ var _ rest.Storage = &MetricStorage{}
 var _ rest.Getter = &MetricStorage{}
 var _ rest.Lister = &MetricStorage{}
 
-func NewStorage(groupResource schema.GroupResource, metricSink *metricsink.MetricSink, podLister v1listers.PodLister, kubeClient *kubernetes.Clientset) *MetricStorage {
+func NewStorage(groupResource schema.GroupResource, metricSink *metricsink.MetricSink, podLister v1listers.PodLister, kubeClient *kubernetes.Clientset, HPARollingUpdateSkipped bool) *MetricStorage {
 	return &MetricStorage{
-		groupResource: groupResource,
-		metricSink:    metricSink,
-		podLister:     podLister,
-		kubeClient:    kubeClient,
+		groupResource:           groupResource,
+		metricSink:              metricSink,
+		podLister:               podLister,
+		kubeClient:              kubeClient,
+		HPARollingUpdateSkipped: HPARollingUpdateSkipped,
 	}
 }
 
@@ -96,7 +98,7 @@ func (m *MetricStorage) List(ctx genericapirequest.Context, options *metainterna
 	res := metrics.PodMetricsList{}
 
 	// seems like hpa requests
-	if filterHPARollingUpdateMetrics(pods, options, m.kubeClient) {
+	if filterHPARollingUpdateMetrics(pods, options, m.kubeClient, m.HPARollingUpdateSkipped) {
 		return &res, nil
 	}
 
@@ -110,13 +112,13 @@ func (m *MetricStorage) List(ctx genericapirequest.Context, options *metainterna
 	return &res, nil
 }
 
-func filterHPARollingUpdateMetrics(pods []*v1.Pod, options *metainternalversion.ListOptions, client *kubernetes.Clientset) bool {
+func filterHPARollingUpdateMetrics(pods []*v1.Pod, options *metainternalversion.ListOptions, client *kubernetes.Clientset, HPARollingUpdateSkippedEnabled bool) bool {
 	if len(pods) != 0 && options != nil && options.LabelSelector != nil {
 		var podCandidate *v1.Pod
 
 		for _, pod := range pods {
 			if &pod.Status != nil && pod.Status.Phase == v1.PodRunning &&
-				pod.Annotations != nil && pod.Annotations[HPARollingUpdateSkipped] == "true" {
+				pod.Annotations != nil && (HPARollingUpdateSkippedEnabled || pod.Annotations[HPARollingUpdateSkipped] == "true") {
 				podCandidate = pod
 			}
 		}
