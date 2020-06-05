@@ -1,6 +1,9 @@
 package socket
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -10,14 +13,11 @@ import (
 	influxdb "github.com/influxdata/influxdb/client"
 	"github.com/influxdata/telegraf/metric"
 	"github.com/pkg/errors"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
 	"time"
-	"encoding/base64"
-	"crypto/aes"
-	"crypto/cipher"
-	"io/ioutil"
 )
 
 /**
