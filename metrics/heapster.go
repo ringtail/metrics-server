@@ -275,10 +275,18 @@ func getPodLister(kubeClient *kube_client.Clientset) (v1listers.PodLister, error
 }
 
 func validateFlags(opt *options.HeapsterRunOptions) error {
+	validResolutions := []time.Duration{15 * time.Second, 20 * time.Second, 30 * time.Second, 60 * time.Second}
 	if opt.MetricResolution < 5*time.Second {
 		return fmt.Errorf("metric resolution needs to be greater than 5 seconds - %d", opt.MetricResolution)
 	}
-	return nil
+
+	for _, r := range validResolutions {
+		if r == opt.MetricResolution {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("valid resolution is 15s 20s 30s or 60s, You current value is %v", opt.MetricResolution)
 }
 
 func setMaxProcs(opt *options.HeapsterRunOptions) {

@@ -118,7 +118,7 @@ func filterHPARollingUpdateMetrics(pods []*v1.Pod, options *metainternalversion.
 
 		for _, pod := range pods {
 			if &pod.Status != nil && pod.Status.Phase == v1.PodRunning &&
-				pod.Annotations != nil && (HPARollingUpdateSkippedEnabled || pod.Annotations[HPARollingUpdateSkipped] == "true") {
+				(HPARollingUpdateSkippedEnabled || (pod.Annotations != nil && pod.Annotations[HPARollingUpdateSkipped] == "true")) {
 				podCandidate = pod
 			}
 		}

@@ -142,12 +142,12 @@ func (rm *realManager) housekeep(resolution time.Duration, start, end time.Time,
 		*index = *index + 1
 
 		if *index%batchSize == 0 {
+			glog.V(5).Infof("Export metrics to sinks after %d period", index)
 			// Export data to sinks
-			glog.Info("Match resolution and export data to sink")
 			rm.sink.ExportData(data)
 			*index = 0
 		} else {
-			glog.Info("Skip to sink to master because of not reach resolution.")
+			glog.V(5).Info("Skip to export to sinks because of resolution not reach 1min.")
 		}
 
 	}(rm, index)
