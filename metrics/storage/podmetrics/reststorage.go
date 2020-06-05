@@ -49,6 +49,7 @@ type MetricStorage struct {
 	podLister               v1listers.PodLister
 	kubeClient              *kubernetes.Clientset
 	HPARollingUpdateSkipped bool
+	Resolution              time.Duration
 }
 
 var _ rest.KindProvider = &MetricStorage{}
@@ -56,13 +57,14 @@ var _ rest.Storage = &MetricStorage{}
 var _ rest.Getter = &MetricStorage{}
 var _ rest.Lister = &MetricStorage{}
 
-func NewStorage(groupResource schema.GroupResource, metricSink *metricsink.MetricSink, podLister v1listers.PodLister, kubeClient *kubernetes.Clientset, HPARollingUpdateSkipped bool) *MetricStorage {
+func NewStorage(groupResource schema.GroupResource, metricSink *metricsink.MetricSink, podLister v1listers.PodLister, kubeClient *kubernetes.Clientset, HPARollingUpdateSkipped bool, resolution time.Duration) *MetricStorage {
 	return &MetricStorage{
 		groupResource:           groupResource,
 		metricSink:              metricSink,
 		podLister:               podLister,
 		kubeClient:              kubeClient,
 		HPARollingUpdateSkipped: HPARollingUpdateSkipped,
+		Resolution:              resolution,
 	}
 }
 
@@ -190,7 +192,7 @@ func (m *MetricStorage) getPodMetrics(pod *v1.Pod) *metrics.PodMetrics {
 			CreationTimestamp: metav1.NewTime(time.Now()),
 		},
 		Timestamp:  metav1.NewTime(batch.Timestamp),
-		Window:     metav1.Duration{Duration: time.Minute},
+		Window:     metav1.Duration{Duration: m.Resolution},
 		Containers: make([]metrics.ContainerMetrics, 0),
 	}
 
