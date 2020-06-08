@@ -97,6 +97,8 @@ func NewDataSinkManager(sinks []core.DataSink, exportDataTimeout, stopTimeout ti
 							batchIndex = batchIndex + 1
 							glog.V(5).Info("Skip socket sink with fixed time resolution 1min (%d/%d)", batchIndex, batchSize)
 						}
+					} else {
+						export(sh.sink, data)
 					}
 				case isStop := <-sh.stopChannel:
 					glog.V(2).Infof("Stop received: %s", sh.sink.Name())
