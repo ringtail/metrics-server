@@ -2,7 +2,7 @@ FROM golang:1.10.3 AS build-env
 ADD . /src/github.com/kubernetes-incubator/metrics-server
 ENV GOPATH /:/src/github.com/kubernetes-incubator/metrics-server/vendor
 WORKDIR /src/github.com/kubernetes-incubator/metrics-server
-RUN apt-get update -y && apt-get install gcc ca-certificates
+RUN apt-get update -y && apt-get install gcc ca-certificates -y
 RUN make
 
 
