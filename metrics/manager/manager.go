@@ -90,7 +90,6 @@ func (rm *realManager) Stop() {
 }
 
 func (rm *realManager) Housekeep() {
-	var index int = 0
 	for {
 		// Always try to get the newest metrics
 		now := time.Now()
@@ -100,7 +99,7 @@ func (rm *realManager) Housekeep() {
 
 		select {
 		case <-time.After(timeToNextSync):
-			rm.housekeep(rm.resolution, start, end, &index)
+			rm.housekeep(start, end)
 		case <-rm.stopChan:
 			rm.sink.Stop()
 			return
@@ -108,7 +107,7 @@ func (rm *realManager) Housekeep() {
 	}
 }
 
-func (rm *realManager) housekeep(resolution time.Duration, start, end time.Time, index *int) {
+func (rm *realManager) housekeep(start, end time.Time) {
 	if !start.Before(end) {
 		glog.Warningf("Wrong time provided to housekeep start:%s end: %s", start, end)
 		return
@@ -123,8 +122,7 @@ func (rm *realManager) housekeep(resolution time.Duration, start, end time.Time,
 		return
 	}
 
-	batchSize := 60 / int(resolution.Seconds())
-	go func(rm *realManager, index *int) {
+	go func(rm *realManager) {
 		// should always give back the semaphore
 		defer func() { rm.housekeepSemaphoreChan <- struct{}{} }()
 		data := rm.source.ScrapeMetrics(start, end)
@@ -138,19 +136,9 @@ func (rm *realManager) housekeep(resolution time.Duration, start, end time.Time,
 				return
 			}
 		}
-
-		*index = *index + 1
-
-		if *index%batchSize == 0 {
-			glog.V(5).Infof("Export metrics to sinks after %d period", index)
-			// Export data to sinks
-			rm.sink.ExportData(data)
-			*index = 0
-		} else {
-			glog.V(5).Info("Skip to export to sinks because of resolution not reach 1min.")
-		}
-
-	}(rm, index)
+		// Export data to sinks
+		rm.sink.ExportData(data)
+	}(rm)
 }
 
 func process(p core.DataProcessor, data *core.DataBatch) (*core.DataBatch, error) {

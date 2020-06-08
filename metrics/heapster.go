@@ -85,7 +85,7 @@ func main() {
 		glog.Fatalf("Failed to get kubernetes address: %v", err)
 	}
 	sourceManager := createSourceManagerOrDie(opt.Sources, opt.MetricResolution-manager.DefaultScrapeOffset)
-	sinkManager, metricSink := createAndInitSinksOrDie(opt.Sinks)
+	sinkManager, metricSink := createAndInitSinksOrDie(opt.Sinks, opt.MetricResolution)
 
 	podLister, nodeLister := getListersOrDie(kubernetesUrl)
 	dataProcessors := createDataProcessorsOrDie(kubernetesUrl, podLister)
@@ -136,7 +136,7 @@ func createSourceManagerOrDie(src flags.Uris, scrapeTimeout time.Duration) core.
 	return sourceManager
 }
 
-func createAndInitSinksOrDie(sinkAddresses flags.Uris) (core.DataSink, *metricsink.MetricSink) {
+func createAndInitSinksOrDie(sinkAddresses flags.Uris, resolution time.Duration) (core.DataSink, *metricsink.MetricSink) {
 	sinksFactory := sinks.NewSinkFactory()
 	metricSink, sinkList := sinksFactory.BuildAll(sinkAddresses)
 	if metricSink == nil {
@@ -145,7 +145,7 @@ func createAndInitSinksOrDie(sinkAddresses flags.Uris) (core.DataSink, *metricsi
 	for _, sink := range sinkList {
 		glog.Infof("Starting with %s", sink.Name())
 	}
-	sinkManager, err := sinks.NewDataSinkManager(sinkList, sinks.DefaultSinkExportDataTimeout, sinks.DefaultSinkStopTimeout)
+	sinkManager, err := sinks.NewDataSinkManager(sinkList, sinks.DefaultSinkExportDataTimeout, sinks.DefaultSinkStopTimeout, resolution)
 	if err != nil {
 		glog.Fatalf("Failed to create sink manager: %v", err)
 	}

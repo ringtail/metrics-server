@@ -70,9 +70,10 @@ type sinkManager struct {
 	sinkHolders       []sinkHolder
 	exportDataTimeout time.Duration
 	stopTimeout       time.Duration
+	resolution        time.Duration
 }
 
-func NewDataSinkManager(sinks []core.DataSink, exportDataTimeout, stopTimeout time.Duration) (core.DataSink, error) {
+func NewDataSinkManager(sinks []core.DataSink, exportDataTimeout, stopTimeout time.Duration, resolution time.Duration) (core.DataSink, error) {
 	sinkHolders := []sinkHolder{}
 	for _, sink := range sinks {
 		sh := sinkHolder{
@@ -82,10 +83,21 @@ func NewDataSinkManager(sinks []core.DataSink, exportDataTimeout, stopTimeout ti
 		}
 		sinkHolders = append(sinkHolders, sh)
 		go func(sh sinkHolder) {
+			batchSize := 60 / int(resolution.Seconds())
+			batchIndex := 1
 			for {
 				select {
 				case data := <-sh.dataBatchChannel:
-					export(sh.sink, data)
+					if sh.sink.Name() == "Socket Sink" {
+						if batchIndex%batchSize == 0 {
+							glog.V(5).Info("Export Data to Socket Sink after time resolution 1min.")
+							batchIndex = 1
+							export(sh.sink, data)
+						} else {
+							batchIndex = batchIndex + 1
+							glog.V(5).Info("Skip socket sink with fixed time resolution 1min (%d/%d)", batchIndex, batchSize)
+						}
+					}
 				case isStop := <-sh.stopChannel:
 					glog.V(2).Infof("Stop received: %s", sh.sink.Name())
 					if isStop {
@@ -100,6 +112,7 @@ func NewDataSinkManager(sinks []core.DataSink, exportDataTimeout, stopTimeout ti
 		sinkHolders:       sinkHolders,
 		exportDataTimeout: exportDataTimeout,
 		stopTimeout:       stopTimeout,
+		resolution:        resolution,
 	}, nil
 }
 
