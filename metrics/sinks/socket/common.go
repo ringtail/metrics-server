@@ -125,6 +125,7 @@ func serialize(m influxdb.Point) ([]byte, error) {
 const (
 	DEFAULT_STS_INTERVAL = time.Minute * 60
 	CS_ENDPOINT          = "cs.aliyuncs.com"
+	CS_ENDPOINT_TEMPLATE = "cs-vpc.%s.aliyuncs.com"
 	CS_API_VERSION       = "2015-12-15"
 	ConfigPath           = "/var/addon/token-config"
 )
@@ -276,7 +277,7 @@ func (metaInfo *MetaInfo) Refresh(clusterId string) {
 	}
 
 	request := requests.NewCommonRequest()
-	request.Domain = CS_ENDPOINT
+	request.Domain = fmt.Sprintf(CS_ENDPOINT_TEMPLATE, region)
 	request.Version = CS_API_VERSION
 	request.ApiName = "DescribeMonitorToken"
 	request.PathPattern = fmt.Sprintf("/k8s/%s/monitor/token", metaInfo.ClusterId)
