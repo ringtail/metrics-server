@@ -2,7 +2,9 @@ FROM golang:alpine3.12 AS build-env
 ADD . /src/github.com/kubernetes-incubator/metrics-server
 ENV GOPATH /:/src/github.com/kubernetes-incubator/metrics-server/vendor
 WORKDIR /src/github.com/kubernetes-incubator/metrics-server
-RUN apt-get update -y && apt-get install gcc ca-certificates -y
+RUN apk update \
+    && apk add --no-cache gcc ca-certificates \
+    && rm -rf /var/cache/apk/*
 RUN make
 
 
