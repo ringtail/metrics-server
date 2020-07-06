@@ -3,7 +3,7 @@ ADD . /src/github.com/kubernetes-incubator/metrics-server
 ENV GOPATH /:/src/github.com/kubernetes-incubator/metrics-server/vendor
 WORKDIR /src/github.com/kubernetes-incubator/metrics-server
 RUN apk update \
-    && apk add --no-cache gcc ca-certificates \
+    && apk add --no-cache gcc ca-certificates make \
     && rm -rf /var/cache/apk/*
 RUN make
 
